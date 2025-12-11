@@ -22,6 +22,7 @@ interface MobileNavbarProps {
       username?: string | null
     }
   } | null
+  isScrolled?: boolean
 }
 
 export function MobileNavbar({
@@ -30,13 +31,18 @@ export function MobileNavbar({
   navigation,
   isActive,
   session,
+  isScrolled = false,
 }: MobileNavbarProps) {
   const t = useTranslations('common')
 
   return (
     <button
       onClick={onToggle}
-      className="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100"
+      className={`md:hidden p-2 rounded-md transition-colors ${
+        isScrolled
+          ? 'text-white hover:bg-white/10'
+          : 'text-gray-900 hover:bg-white/20'
+      }`}
       aria-label="Toggle menu"
     >
       {isOpen ? (
@@ -58,29 +64,39 @@ export function MobileMenu({
   navigation,
   isActive,
   session,
+  isScrolled = false,
 }: {
   isOpen: boolean
   onClose: () => void
   navigation: NavItem[]
   isActive: (href: string) => boolean
   session: MobileNavbarProps['session']
+  isScrolled?: boolean
 }) {
   const t = useTranslations('common')
 
   if (!isOpen) return null
 
   return (
-    <div className="md:hidden border-t border-gray-300 py-4 bg-[#f9f5ec]">
+    <div className={`md:hidden border-t py-4 transition-all duration-300 ${
+      isScrolled
+        ? 'border-[#1B4D3E]/80 bg-[#1B4D3E] backdrop-blur-md rounded-b-full'
+        : 'border-gray-300/50 bg-white/80 backdrop-blur-md'
+    }`}>
       <div className="flex flex-col space-y-2">
         {navigation.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             onClick={onClose}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-3 py-2 text-sm font-medium transition-all duration-300 ${
               isActive(item.href)
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                ? isScrolled
+                  ? 'text-white border-l-2 border-white'
+                  : 'text-gray-900 border-l-2 border-gray-900'
+                : isScrolled
+                  ? 'text-white/80 hover:text-white'
+                  : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             {item.name}
@@ -90,7 +106,11 @@ export function MobileMenu({
           <Link
             href="/auth/signin"
             onClick={onClose}
-            className="px-3 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors text-center"
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 text-center ${
+              isScrolled
+                ? 'text-white border border-white/30 hover:border-white/50 bg-transparent hover:bg-white/10'
+                : 'text-gray-900 border border-gray-900 hover:bg-gray-900 hover:text-white bg-transparent'
+            }`}
           >
             {t('signIn')}
           </Link>
