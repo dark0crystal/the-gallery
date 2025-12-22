@@ -27,6 +27,7 @@
     "bio": "Bio",
     "bioPlaceholder": "Tell us about yourself...",
     "bioHint": "Share a brief description about yourself",
+    "coverImage": "Cover Image",
     "settingsUpdated": "Settings updated successfully!",
     "settingsUpdateFailed": "Failed to update settings. Please try again.",
     "posts": "Posts",

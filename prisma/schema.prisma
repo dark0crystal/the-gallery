@@ -21,8 +21,10 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?   // Profile image URL (Digital Ocean Spaces)
+  coverImage    String?   // Cover image URL (Digital Ocean Spaces)
   username      String?   @unique // Custom username
   bio           String?   @db.Text
+  pinnedPostId  String?
   role          UserRole  @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
