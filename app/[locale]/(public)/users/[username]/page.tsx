@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
+import ProfileHeader from '@/components/ProfileHeader'
 
 export default async function UserProfilePage({
   params,
@@ -33,33 +35,24 @@ export default async function UserProfilePage({
     notFound()
   }
 
+  const session = await auth()
+  let isFollowing = false
+  if (session?.user) {
+    const follow = await prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: session.user.id!,
+          followingId: user.id,
+        },
+      },
+    })
+    isFollowing = !!follow
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="flex items-center gap-6 mb-8">
-        {user.image && (
-          <img
-            src={user.image}
-            alt={user.name || user.username || 'User'}
-            className="w-24 h-24 rounded-full"
-          />
-        )}
-        <div>
-          <h1 className="text-3xl font-bold">{user.name || user.username}</h1>
-          {user.username && <p className="text-gray-500">@{user.username}</p>}
-          {user.bio && <p className="mt-2">{user.bio}</p>}
-        </div>
-      </div>
-      <div className="flex gap-6 mb-8">
-        <div>
-          <span className="font-bold">{user._count.posts}</span> posts
-        </div>
-        <div>
-          <span className="font-bold">{user._count.followers}</span> followers
-        </div>
-        <div>
-          <span className="font-bold">{user._count.following}</span> following
-        </div>
-      </div>
+      <ProfileHeader user={user} isOwner={session?.user?.id === user.id} initialFollowing={isFollowing} />
+
       <div className="grid grid-cols-3 gap-4">
         {user.posts.map((post) => (
           <div key={post.id} className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
