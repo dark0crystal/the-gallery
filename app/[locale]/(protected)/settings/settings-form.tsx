@@ -13,18 +13,45 @@ export function SettingsForm({ user }: { user: User }) {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  const [profileFile, setProfileFile] = useState<File | null>(null)
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [profilePreview, setProfilePreview] = useState<string | null>(user.image || null)
+  const [coverPreview, setCoverPreview] = useState<string | null>(user.coverImage || null)
+
+  const uploadFile = async (file: File) => {
+    const fd = new FormData()
+    fd.append('files', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Upload failed')
+    return data.imageUrls[0]
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     setMessage(null)
 
     try {
+      let imageUrl = user.image
+      let coverUrl = user.coverImage
+
+      if (profileFile) {
+        imageUrl = await uploadFile(profileFile)
+      }
+
+      if (coverFile) {
+        coverUrl = await uploadFile(coverFile)
+      }
+
       const response = await fetch(`/api/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username,
           bio,
+          image: imageUrl,
+          coverImage: coverUrl,
         }),
       })
 
@@ -99,6 +126,42 @@ export function SettingsForm({ user }: { user: User }) {
             {bio.length}/500
           </p>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('coverImage') || 'Cover Image'}</label>
+        {coverPreview && (
+          <div className="mb-2">
+            <img src={coverPreview} alt="Cover preview" className="w-full h-40 object-cover rounded-md" />
+          </div>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const f = e.target.files?.[0] || null
+            setCoverFile(f)
+            if (f) setCoverPreview(URL.createObjectURL(f))
+          }}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile Image</label>
+        {profilePreview && (
+          <div className="mb-2">
+            <img src={profilePreview} alt="Profile preview" className="w-24 h-24 object-cover rounded-full" />
+          </div>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const f = e.target.files?.[0] || null
+            setProfileFile(f)
+            if (f) setProfilePreview(URL.createObjectURL(f))
+          }}
+        />
       </div>
 
       <div className="flex gap-3 pt-4">
