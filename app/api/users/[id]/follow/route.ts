@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { cacheKeys, deleteCache } from '@/lib/cache'
 
 export async function POST(
   request: NextRequest,
@@ -30,6 +31,10 @@ export async function POST(
       await prisma.follow.delete({
         where: { id: existingFollow.id },
       })
+
+      await deleteCache(cacheKeys.followers(id))
+      await deleteCache(cacheKeys.following(session.user.id!))
+
       return NextResponse.json({ following: false })
     }
 
@@ -39,6 +44,9 @@ export async function POST(
         followingId: id,
       },
     })
+
+    await deleteCache(cacheKeys.followers(id))
+    await deleteCache(cacheKeys.following(session.user.id!))
 
     return NextResponse.json({ following: true })
   } catch (error) {
