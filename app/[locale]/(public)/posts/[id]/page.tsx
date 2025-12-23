@@ -53,7 +53,7 @@ export default async function PostDetailPage({
   return (
     <div>
       {/* Client-side interactive wrapper */}
-      {/* @ts-expect-error Server -> Client prop */}
+
       <PostDetailClient post={serializable} />
     </div>
   )
