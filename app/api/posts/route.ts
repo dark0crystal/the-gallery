@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { cacheKeys, getCache, setCache, deleteCache, CACHE_TTL } from '@/lib/cache'
+import { getCache, setCache, deleteCache, CACHE_TTL } from '@/lib/cache'
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth()
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
     const locationId = searchParams.get('locationId')
     const limit = parseInt(searchParams.get('limit') || '20')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const cursor = searchParams.get('cursor') // Cursor-based pagination
 
-    const cacheKey = `posts:${userId || 'all'}:${locationId || 'all'}:${limit}:${offset}`
-    const cached = await getCache(cacheKey)
-    if (cached) {
-      return NextResponse.json(cached)
-    }
+    // Cache key needs to include cursor
+    const cacheKey = `posts:${userId || 'all'}:${locationId || 'all'}:${limit}:${cursor || 'start'}`
+
+    // Note: Caching with personalization (likedByMe) is tricky. 
+    // For now, we might skip caching or cache the public data and merge personal data.
+    // To keep it simple for this prototype, checking DB directly if session exists for personal status.
 
     const where: any = { isPublic: true }
     if (userId) where.userId = userId
@@ -41,17 +43,38 @@ export async function GET(request: NextRequest) {
           select: {
             likes: true,
             comments: true,
+            saves: true,
           },
         },
+        // We'll fetch liked/saved status manually or via subqueries if Prisma supports it cleanly,
+        // but explicit relation check is easier for now.
+        likes: session?.user?.id ? { where: { userId: session.user.id } } : false,
+        saves: session?.user?.id ? { where: { userId: session.user.id } } : false,
       },
       orderBy: { createdAt: 'desc' },
-      take: limit,
-      skip: offset,
+      take: limit + 1, // Fetch one extra to determine next cursor
+      cursor: cursor ? { id: cursor } : undefined,
     })
 
-    await setCache(cacheKey, posts, CACHE_TTL.POST_FEED)
+    let nextCursor: string | undefined = undefined
+    if (posts.length > limit) {
+      const nextItem = posts.pop() // Remove the extra item
+      nextCursor = nextItem?.id
+    }
 
-    return NextResponse.json(posts)
+    // Transform data to include simple boolean flags
+    const formattedPosts = posts.map(post => ({
+      ...post,
+      isLiked: post.likes?.length > 0,
+      isSaved: post.saves?.length > 0,
+      likes: undefined, // Remove the raw rel array
+      saves: undefined,
+    }))
+
+    return NextResponse.json({
+      data: formattedPosts,
+      nextCursor,
+    })
   } catch (error) {
     console.error('Error fetching posts:', error)
     return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 })
@@ -66,9 +89,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, locationId, imageUrls, isPublic = true, categoryIds = [] } = body
+    // images: array of { url, width, height }
+    const { title, description, locationId, images, isPublic = true, categoryIds = [] } = body
 
-    if (!locationId || !imageUrls || imageUrls.length === 0) {
+    if (!locationId || !images || images.length === 0) {
       return NextResponse.json(
         { error: 'Location and at least one image are required' },
         { status: 400 }
@@ -99,8 +123,10 @@ export async function POST(request: NextRequest) {
         userId: session.user.id!,
         isPublic,
         images: {
-          create: imageUrls.map((url: string, index: number) => ({
-            imageUrl: url,
+          create: images.map((img: any, index: number) => ({
+            imageUrl: typeof img === 'string' ? img : img.url,
+            width: typeof img === 'object' ? img.width : null,
+            height: typeof img === 'object' ? img.height : null,
             order: index,
           })),
         },
@@ -119,7 +145,6 @@ export async function POST(request: NextRequest) {
     // Invalidate cache
     await Promise.all([
       deleteCache(`feed:${session.user.id}`),
-      deleteCache('posts:all:all:20:0'),
     ])
 
     return NextResponse.json(post, { status: 201 })
@@ -128,4 +153,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create post' }, { status: 500 })
   }
 }
-
