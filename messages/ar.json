@@ -108,6 +108,14 @@
     "nameAlreadyExists": "فئة بهذا الاسم موجودة بالفعل",
     "usageCount": "مستخدمة في {count} منشور",
     "manageCategories": "إدارة الفئات"
+  },
+  "leaderboard": {
+    "topCreators": "أفضل المبدعين",
+    "rank": "الترتيب",
+    "postCount": "المنشورات",
+    "noUsers": "لا يوجد مستخدمون",
+    "leaderboardError": "فشل تحميل القائمة. يرجى المحاولة مرة أخرى لاحقاً.",
+    "viewProfile": "عرض الملف الشخصي"
   }
 }
 

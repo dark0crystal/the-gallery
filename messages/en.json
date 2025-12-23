@@ -108,6 +108,14 @@
     "nameAlreadyExists": "Category with this name already exists",
     "usageCount": "Used in {count} posts",
     "manageCategories": "Manage Categories"
+  },
+  "leaderboard": {
+    "topCreators": "Top Creators",
+    "rank": "Rank",
+    "postCount": "Posts",
+    "noUsers": "No users found",
+    "leaderboardError": "Failed to load leaderboard. Please try again later.",
+    "viewProfile": "View Profile"
   }
 }
 
