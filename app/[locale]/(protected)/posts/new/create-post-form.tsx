@@ -7,6 +7,7 @@ import { ImageUpload } from '@/components/post/ImageUpload'
 import { LocationSearch } from '@/components/post/LocationSearch'
 import { FloatingLabelInput } from '@/components/post/FloatingLabelInput'
 import { useTranslations } from 'next-intl'
+import { useToast } from '@/hooks/useToast'
 
 interface ImageFile {
   file: File
@@ -28,7 +29,7 @@ export function CreatePostForm() {
   const [categoryIds, setCategoryIds] = useState<string[]>([])
   const [isPublic, setIsPublic] = useState(true)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [showSuccess, setShowSuccess] = useState(false)
+  const { success: showSuccess, error: showError } = useToast()
 
   // Cleanup preview URLs on unmount
   useEffect(() => {
@@ -104,17 +105,17 @@ export function CreatePostForm() {
 
       const post = await postResponse.json()
       
-      // Show success message
-      setShowSuccess(true)
-      
-      // Redirect after short delay
+      // Show success toast and redirect after short delay
+      showSuccess('Post published successfully!')
       setTimeout(() => {
         router.push(`/posts/${post.id}`)
-      }, 1500)
+      }, 800)
     } catch (error) {
       console.error('Error creating post:', error)
+      const msg = error instanceof Error ? error.message : 'Failed to create post. Please try again.'
+      showError(msg)
       setErrors({
-        submit: error instanceof Error ? error.message : 'Failed to create post. Please try again.',
+        submit: msg,
       })
     } finally {
       setUploading(false)
@@ -125,15 +126,6 @@ export function CreatePostForm() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Success Toast */}
-      {showSuccess && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          <span>Post published successfully!</span>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="max-w-7xl mx-auto px-4 py-8">
         {/* Two Column Layout */}
@@ -247,7 +239,7 @@ export function CreatePostForm() {
             {errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4" role="alert">
                 <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div>

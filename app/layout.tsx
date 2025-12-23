@@ -17,10 +17,16 @@ export const metadata: Metadata = {
   description: "A platform for nature photographers to share and discover photography spots",
 };
 
+import { ToastProvider } from '@/contexts/ToastContext'
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return children;
+  return (
+    <ToastProvider>
+      {children}
+    </ToastProvider>
+  )
 }
