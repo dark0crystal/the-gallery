@@ -34,6 +34,7 @@ model User {
   sessions      Session[]
   posts         Post[]
   likes         Like[]
+  saves         Save[]
   comments      Comment[]
   followers     Follow[]  @relation("UserFollowers")
   following     Follow[]  @relation("UserFollowing")
@@ -100,6 +101,7 @@ model Post {
   location    Location  @relation(fields: [locationId], references: [id])
   images      Image[]
   likes       Like[]
+  saves       Save[]
   comments    Comment[]
   categories  Category[]
   
@@ -113,6 +115,8 @@ model Image {
   id          String    @id @default(uuid())
   postId      String
   imageUrl    String    // Digital Ocean Spaces URL
+  width       Int?      // Image width in pixels
+  height      Int?      // Image height in pixels
   order       Int       @default(0) // Display order within post
   cameraInfo  Json?     // EXIF data, camera model, settings (per image)
   altText     String?   // Accessibility alt text
@@ -174,6 +178,21 @@ model Like {
   @@index([userId])
   @@index([postId])
   @@map("likes")
+}
+
+model Save {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@map("saves")
 }
 
 model Comment {
