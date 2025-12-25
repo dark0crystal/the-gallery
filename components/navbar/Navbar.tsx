@@ -8,6 +8,7 @@ import { Link, usePathname } from '@/i18n/navigation'
 import { Brand } from './Brand'
 import { NavLinks } from './NavLinks'
 import { MobileNavbar, MobileMenu } from './MobileNavbar'
+import NotificationBadge from '@/components/notifications/NotificationBadge'
 
 interface NavbarProps {
   session: {
@@ -73,7 +74,7 @@ export function Navbar({ session }: NavbarProps) {
         }`}
       >
         <div className="flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 lg:px-10">
-          <div className="flex items-center flex-shrink-0">
+          <div className="flex items-center shrink-0">
             <Brand isScrolled={showGreenStyle} />
           </div>
 
@@ -96,7 +97,14 @@ export function Navbar({ session }: NavbarProps) {
           </div>
 
           {/* Right side: User menu */}
-          <div className="flex items-center space-x-4 flex-shrink-0">
+          <div className="flex items-center space-x-4 shrink-0">
+            {/* Notifications */}
+            {session?.user && (
+              <div className="hidden sm:block">
+                <NotificationBadge />
+              </div>
+            )}
+
             {/* User Menu */}
             {session?.user ? (
               <div className="relative">
