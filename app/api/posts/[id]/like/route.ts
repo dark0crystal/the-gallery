@@ -36,6 +36,23 @@ export async function POST(
       },
     })
 
+    // Create a notification for the post owner if it's not the actor
+    try {
+      const post = await prisma.post.findUnique({ where: { id }, select: { userId: true } })
+      if (post && post.userId !== session.user.id) {
+        await prisma.notification.create({
+          data: {
+            userId: post.userId,
+            type: 'LIKE',
+            relatedUserId: session.user.id!,
+            relatedPostId: id,
+          },
+        })
+      }
+    } catch (err) {
+      console.error('Failed to create like notification', err)
+    }
+
     return NextResponse.json({ liked: true })
   } catch (error) {
     console.error('Error toggling like:', error)
