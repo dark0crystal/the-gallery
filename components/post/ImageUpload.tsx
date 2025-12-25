@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import Image from 'next/image'
+import { useToast } from '@/hooks/useToast'
 
 interface ImageFile {
   file: File
@@ -18,8 +19,11 @@ interface ImageUploadProps {
 export function ImageUpload({ images, onImagesChange, maxImages = 10 }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
+  const [compressing, setCompressing] = useState(false)
+  const [compressedInfo, setCompressedInfo] = useState<Record<string, { original: number; compressed?: number }>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dragCounterRef = useRef(0)
+  const { error: showError } = useToast()
 
   const createImageFile = (file: File): ImageFile => ({
     file,
@@ -27,18 +31,36 @@ export function ImageUpload({ images, onImagesChange, maxImages = 10 }: ImageUpl
     id: `${Date.now()}-${Math.random()}`,
   })
 
-  const handleFiles = useCallback((files: FileList | null) => {
+  const handleFiles = useCallback(async (files: FileList | null) => {
     if (!files) return
 
-    const newFiles = Array.from(files)
-      .filter((file) => file.type.startsWith('image/'))
-      .slice(0, maxImages - images.length)
-      .map(createImageFile)
+    const fileArray = Array.from(files).filter((file) => file.type.startsWith('image/'))
+    const toTake = fileArray.slice(0, maxImages - images.length)
+    if (toTake.length === 0) return
 
-    if (newFiles.length > 0) {
-      onImagesChange([...images, ...newFiles])
+    setCompressing(true)
+    const created: ImageFile[] = []
+
+    for (const file of toTake) {
+      try {
+        const { optimizeImage } = await import('@/lib/image-optimization')
+        setCompressedInfo((p) => ({ ...p, [file.name]: { original: file.size } }))
+        const optimized = await optimizeImage(file, { maxWidth: 1920, maxHeight: 1920, quality: 0.8, maxSizeMB: 2 })
+        setCompressedInfo((p) => ({ ...p, [file.name]: { ...(p[file.name] || {}), compressed: optimized.size } }))
+        created.push({ file: optimized, preview: URL.createObjectURL(optimized), id: `${Date.now()}-${Math.random()}` })
+      } catch (err) {
+        try {
+          showError('Image optimization failed; using original image')
+        } catch (e) {
+          // ignore
+        }
+        created.push(createImageFile(file))
+      }
     }
-  }, [images, maxImages, onImagesChange])
+
+    setCompressing(false)
+    onImagesChange([...images, ...created])
+  }, [images, maxImages, onImagesChange, showError])
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -102,6 +124,10 @@ export function ImageUpload({ images, onImagesChange, maxImages = 10 }: ImageUpl
 
   return (
     <div className="w-full">
+      {compressing && (
+        <div className="mb-4 p-3 bg-yellow-50 rounded-md text-sm text-gray-700">Optimizing images before upload...</div>
+      )}
+
       {/* Upload Area */}
       {images.length === 0 ? (
         <div
