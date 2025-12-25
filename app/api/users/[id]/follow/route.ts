@@ -45,6 +45,21 @@ export async function POST(
       },
     })
 
+    // Create notification for the followed user
+    try {
+      if (id !== session.user.id) {
+        await prisma.notification.create({
+          data: {
+            userId: id,
+            type: 'FOLLOW',
+            relatedUserId: session.user.id!,
+          },
+        })
+      }
+    } catch (err) {
+      console.error('Failed to create follow notification', err)
+    }
+
     await deleteCache(cacheKeys.followers(id))
     await deleteCache(cacheKeys.following(session.user.id!))
 
