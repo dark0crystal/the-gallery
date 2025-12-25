@@ -78,6 +78,23 @@ export async function POST(
       },
     })
 
+    // Create notification for post owner (unless commenting on own post)
+    try {
+      const post = await prisma.post.findUnique({ where: { id }, select: { userId: true } })
+      if (post && post.userId !== session.user.id) {
+        await prisma.notification.create({
+          data: {
+            userId: post.userId,
+            type: 'COMMENT',
+            relatedUserId: session.user.id!,
+            relatedPostId: id,
+          },
+        })
+      }
+    } catch (err) {
+      console.error('Failed to create comment notification', err)
+    }
+
     return NextResponse.json(comment, { status: 201 })
   } catch (error) {
     console.error('Error creating comment:', error)
